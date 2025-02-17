@@ -1,4 +1,5 @@
 export enum ActionType {
-	MOVE,
 	JUMP,
+	LEFT,
+	RIGHT,
 }
