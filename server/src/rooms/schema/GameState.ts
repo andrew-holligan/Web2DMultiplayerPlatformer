@@ -1,4 +1,5 @@
 import { MapSchema, Schema, type } from "@colyseus/schema";
+
 import { Entity } from "./Entity";
 import { GameConfig } from "./GameConfig";
 
