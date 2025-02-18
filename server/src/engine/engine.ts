@@ -4,6 +4,9 @@ import { MapSchema } from "@colyseus/schema";
 import { GameMap } from "../../../shared/map/GameMap";
 import { Entity } from "../rooms/schema/Entity";
 
+const CATEGORY_PLATFORM = 0x0001;
+const CATEGORY_PLAYER = 0x0002;
+
 export class GameEngine {
 	private readonly engine: Matter.Engine;
 	private readonly entities: Map<string, Matter.Body>;
@@ -29,7 +32,7 @@ export class GameEngine {
 				tile.y * map.tileHeight,
 				map.tileWidth,
 				map.tileHeight,
-				{ isStatic: true }
+				{ isStatic: true, collisionFilter: { category: CATEGORY_PLATFORM, mask: CATEGORY_PLAYER } }
 			);
 			Matter.World.add(this.engine.world, entity);
 		});
@@ -51,7 +54,8 @@ export class GameEngine {
 		height: number;
 	}): Matter.Body {
 		const entity = Matter.Bodies.rectangle(pos.x, pos.y, width, height, {
-			velocity: vel,
+			restitution: 0.0,
+			collisionFilter: { category: CATEGORY_PLAYER, mask: CATEGORY_PLATFORM },
 		});
 		Matter.Body.setVelocity(entity, vel);
 		Matter.World.add(this.engine.world, entity);
@@ -103,22 +107,22 @@ export class GameEngine {
 
 	// EVENT HANDLERS
 
-	handleJump(id: string): void {
+	handleJump(id: string, playerSpeed: number): void {
 		const entity = this.entities.get(id);
 		if (!entity) return;
-		Matter.Body.setVelocity(entity, { x: entity.velocity.x, y: -10 });
+		Matter.Body.setVelocity(entity, { x: entity.velocity.x, y: -playerSpeed });
 	}
 
-	handleLeft(id: string): void {
+	handleLeft(id: string, playerSpeed: number): void {
 		const entity = this.entities.get(id);
 		if (!entity) return;
-		Matter.Body.setVelocity(entity, { x: -5, y: entity.velocity.y });
+		Matter.Body.setVelocity(entity, { x: -playerSpeed, y: entity.velocity.y });
 	}
 
-	handleRight(id: string): void {
+	handleRight(id: string, playerSpeed: number): void {
 		const entity = this.entities.get(id);
 		if (!entity) return;
-		Matter.Body.setVelocity(entity, { x: 5, y: entity.velocity.y });
+		Matter.Body.setVelocity(entity, { x: playerSpeed, y: entity.velocity.y });
 	}
 
 	// CLEANUP

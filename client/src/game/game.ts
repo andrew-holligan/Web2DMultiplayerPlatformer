@@ -83,6 +83,7 @@ export class Game {
 	private update(state: GameState) {
 		this.removeOldEntities(state);
 		this.addOrUpdateEntities(state);
+		this.updateCamera(state);
 	}
 
 	private removeOldEntities(state: GameState) {
@@ -119,6 +120,7 @@ export class Game {
 
 	private updateExistingEntity(entity: ServerEntity, id: string) {
 		const existingEntity = this.entities.get(id);
+		if (!existingEntity) return;
 		switch (entity.type) {
 			case EntityType.PLAYER:
 				(existingEntity as Player).updatePlayer(entity as ServerPlayerEntity);
@@ -126,5 +128,15 @@ export class Game {
 			default:
 				throw new Error(`Unknown entity type: ${entity.type}`);
 		}
+	}
+
+	private updateCamera(state: GameState) {
+		const playerEntityId = state.clientIdToEntityId.get(this.room.sessionId);
+		if (!playerEntityId) return;
+		const player = this.entities.get(playerEntityId);
+		if (!player) return;
+		// Smoothly interpolate camera movement
+		this.world.x += (this.app.screen.width / 2 - player.spriteContainer.x - this.world.x) * 0.1;
+		this.world.y += (this.app.screen.height / 2 - player.spriteContainer.y - this.world.y) * 0.1;
 	}
 }
