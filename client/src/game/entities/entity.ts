@@ -17,12 +17,14 @@ export abstract class Entity {
 	constructor(entity: ServerEntity) {
 		this.spriteContainer = new PIXI.Container();
 		this.id = entity.id;
+
 		this.type = entity.type;
 		this.pos = entity.pos;
 		this.vel = entity.vel;
 		this.width = entity.width;
 		this.height = entity.height;
 		this.angle = entity.angle;
+
 		this.initEntity();
 	}
 
@@ -38,6 +40,5 @@ export abstract class Entity {
 
 	updateEntity(entity: ServerEntity) {
 		this.spriteContainer.position.set(entity.pos.x, entity.pos.y);
-		this.spriteContainer.rotation = entity.angle;
 	}
 }

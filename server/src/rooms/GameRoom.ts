@@ -1,20 +1,22 @@
 import { Room, Client } from "@colyseus/core";
 
+import * as constants from "../../../shared/constants/constants";
 import { MapType } from "../../../shared/types/map";
+
 import { GameEngine } from "../engine/engine";
-import { map1 } from "../static/maps";
+
+import { EntityType } from "./schema/enums/EntityType";
+import { ActionType } from "./schema/enums/ActionType";
+import { PlayerSkinType } from "./schema/enums/PlayerSkinType";
 import { GameState } from "./schema/GameState";
 import { GameConfig } from "./schema/GameConfig";
 import { Player } from "./schema/Player";
 import { Vector } from "./schema/Vector";
-import { EntityType } from "./schema/enums/EntityType";
-import { ActionType } from "./schema/enums/ActionType";
-import { PlayerSkinType } from "./schema/enums/PlayerSkinType";
 
 export class GameRoom extends Room<GameState> {
 	maxClients = 4;
 
-	private readonly map: MapType = map1;
+	private readonly map: MapType = constants.map1;
 	private readonly engine: GameEngine = new GameEngine(this.map);
 
 	onCreate(options: any) {

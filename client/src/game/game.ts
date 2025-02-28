@@ -1,28 +1,31 @@
 import * as PIXI from "pixi.js";
 import { Room } from "colyseus.js";
 
-import { GameState } from "../../../server/src/rooms/schema/GameState";
-import { Entity as ServerEntity } from "../../../server/src/rooms/schema/Entity";
-import { Player as ServerPlayerEntity } from "../../../server/src/rooms/schema/Player";
 import { MapEntityType } from "../../../server/src/rooms/schema/enums/MapEntityType";
 import { ActionType } from "../../../server/src/rooms/schema/enums/ActionType";
 import { EntityType } from "../../../server/src/rooms/schema/enums/EntityType";
+import { GameState as ServerGameState } from "../../../server/src/rooms/schema/GameState";
+import { Entity as ServerEntity } from "../../../server/src/rooms/schema/Entity";
+import { Player as ServerPlayerEntity } from "../../../server/src/rooms/schema/Player";
+
+import * as constants from "../../../shared/constants/constants";
 import { MapType } from "../../../shared/types/map";
-import { map1 } from "../static/maps";
+
 import { Textures } from "../static/textures";
+
 import { Entity } from "./entities/entity";
 import { Player } from "./entities/player";
 
 const container = document.getElementById("app")!;
 
 export class Game {
-	private readonly room: Room<GameState>;
+	private readonly room: Room<ServerGameState>;
 	private readonly app: PIXI.Application;
 	private readonly world: PIXI.Container;
 	private readonly entities: Map<string, Entity> = new Map<string, Entity>();
 	private readonly keys: Set<string> = new Set<string>();
 
-	constructor(room: Room<GameState>) {
+	constructor(room: Room<ServerGameState>) {
 		this.room = room;
 		this.app = new PIXI.Application();
 		this.world = new PIXI.Container();
@@ -36,7 +39,7 @@ export class Game {
 			resizeTo: parent,
 			backgroundColor: 0xffffff,
 		});
-		this.app.stage.scale.set(60);
+		this.app.stage.scale.set(constants.GAME_SCALE);
 		container.appendChild(this.app.canvas);
 
 		// Initialize world container
@@ -58,7 +61,7 @@ export class Game {
 	// INITIALIZATION
 
 	private initMap() {
-		const map: MapType = map1;
+		const map: MapType = constants.map1;
 
 		map.entities.forEach((entity) => {
 			const spriteContainer = new PIXI.Container();
@@ -104,13 +107,13 @@ export class Game {
 
 	// SERVER RESPONSE
 
-	private update(state: GameState) {
+	private update(state: ServerGameState) {
 		this.removeOldEntities(state);
 		this.addOrUpdateEntities(state);
 		this.updateCamera(state);
 	}
 
-	private removeOldEntities(state: GameState) {
+	private removeOldEntities(state: ServerGameState) {
 		this.entities.forEach((entity, id) => {
 			if (!state.entities.has(id)) {
 				this.world.removeChild(entity.spriteContainer);
@@ -119,7 +122,7 @@ export class Game {
 		});
 	}
 
-	private addOrUpdateEntities(state: GameState) {
+	private addOrUpdateEntities(state: ServerGameState) {
 		state.entities.forEach((entity, id) => {
 			if (!this.entities.has(id)) {
 				this.addNewEntity(entity, id);
@@ -154,7 +157,7 @@ export class Game {
 		}
 	}
 
-	private updateCamera(state: GameState) {
+	private updateCamera(state: ServerGameState) {
 		const playerEntityId = state.clientIdToEntityId.get(this.room.sessionId);
 		if (!playerEntityId) return;
 		const player = this.entities.get(playerEntityId);

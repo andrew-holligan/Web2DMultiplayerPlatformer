@@ -2,6 +2,7 @@ import Matter from "matter-js";
 import { MapSchema } from "@colyseus/schema";
 
 import { MapType } from "../../../shared/types/map";
+
 import { MapEntityType } from "../rooms/schema/enums/MapEntityType";
 import { Entity } from "../rooms/schema/Entity";
 
@@ -15,6 +16,7 @@ export class GameEngine {
 			gravity: { x: 0, y: 0.1 },
 		});
 		this.entities = new Map<string, Matter.Body>();
+
 		this.initMap(map);
 		this.initCollisions();
 	}

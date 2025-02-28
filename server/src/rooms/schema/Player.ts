@@ -1,7 +1,7 @@
 import { type } from "@colyseus/schema";
 
-import { Entity } from "./Entity";
 import { PlayerSkinType } from "./enums/PlayerSkinType";
+import { Entity } from "./Entity";
 
 export class Player extends Entity {
 	@type("string") clientId: string;
