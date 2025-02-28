@@ -1,13 +1,13 @@
 import * as PIXI from "pixi.js";
 import { Room } from "colyseus.js";
 
-import { GameMap } from "../../../shared/map/GameMap";
 import { GameState } from "../../../server/src/rooms/schema/GameState";
 import { Entity as ServerEntity } from "../../../server/src/rooms/schema/Entity";
 import { Player as ServerPlayerEntity } from "../../../server/src/rooms/schema/Player";
-import { TileType } from "../../../server/src/rooms/schema/enums/TileType";
+import { MapEntityType } from "../../../server/src/rooms/schema/enums/MapEntityType";
 import { ActionType } from "../../../server/src/rooms/schema/enums/ActionType";
 import { EntityType } from "../../../server/src/rooms/schema/enums/EntityType";
+import { MapType } from "../../../shared/types/map";
 import { map1 } from "../static/maps";
 import { Textures } from "../static/textures";
 import { Entity } from "./entities/entity";
@@ -20,6 +20,7 @@ export class Game {
 	private readonly app: PIXI.Application;
 	private readonly world: PIXI.Container;
 	private readonly entities: Map<string, Entity> = new Map<string, Entity>();
+	private readonly keys: Set<string> = new Set<string>();
 
 	constructor(room: Room<GameState>) {
 		this.room = room;
@@ -28,57 +29,80 @@ export class Game {
 	}
 
 	async init() {
+		// Initialize PIXI app
 		await this.app.init({
 			width: window.innerWidth,
 			height: window.innerHeight,
 			resizeTo: parent,
+			backgroundColor: 0xffffff,
 		});
+		this.app.stage.scale.set(60);
 		container.appendChild(this.app.canvas);
+
+		// Initialize world container
+		this.world.position.set(
+			this.app.screen.width / 2 / this.app.stage.scale.x,
+			this.app.screen.height / 2 / this.app.stage.scale.y
+		);
 		this.app.stage.addChild(this.world);
+
+		// Initialize
 		this.initMap();
 		this.initEventHandlers();
+
+		// Game loop
+		this.app.ticker.add(() => this.everyFrame());
 		this.room.onStateChange((state) => this.update(state));
-		this.app.start();
 	}
 
 	// INITIALIZATION
 
 	private initMap() {
-		const map = new GameMap(map1);
-		map.tiles.forEach((tile) => {
-			const sprite = new PIXI.Sprite(Textures.textures.get(TileType[tile.type]));
-			sprite.position.x = tile.x * map.tileWidth;
-			sprite.position.y = tile.y * map.tileHeight;
-			sprite.width = map.tileWidth;
-			sprite.height = map.tileHeight;
-			sprite.anchor.set(0.5);
-			this.world.addChild(sprite);
+		const map: MapType = map1;
+
+		map.entities.forEach((entity) => {
+			const spriteContainer = new PIXI.Container();
+			spriteContainer.pivot.set(entity.width / 2, entity.height / 2);
+			spriteContainer.position.set(entity.x, entity.y);
+			spriteContainer.rotation = entity.angle;
+
+			const sprite = new PIXI.Sprite(Textures.textures.get(MapEntityType[entity.type]));
+			sprite.width = entity.width;
+			sprite.height = entity.height;
+
+			spriteContainer.addChild(sprite);
+			this.world.addChild(spriteContainer);
 		});
 	}
 
 	private initEventHandlers() {
-		window.addEventListener("keydown", (event) => {
-			switch (event.key) {
-				case " ":
-				case "ArrowUp":
-				case "w":
-					this.room.send(ActionType.JUMP);
-					break;
-
-				case "ArrowLeft":
-				case "a":
-					this.room.send(ActionType.LEFT);
-					break;
-
-				case "ArrowRight":
-				case "d":
-					this.room.send(ActionType.RIGHT);
-					break;
-			}
+		window.addEventListener("keydown", (e) => {
+			this.keys.add(e.code);
+		});
+		window.addEventListener("keyup", (e) => {
+			this.keys.delete(e.code);
 		});
 	}
 
 	// GAME LOOP
+
+	private everyFrame() {
+		this.handleMovement();
+	}
+
+	private handleMovement() {
+		if (this.keys.has("KeyW") || this.keys.has("ArrowUp") || this.keys.has("Space")) {
+			this.room.send(ActionType.JUMP);
+		}
+		if (this.keys.has("KeyA") || this.keys.has("ArrowLeft")) {
+			this.room.send(ActionType.LEFT);
+		}
+		if (this.keys.has("KeyD") || this.keys.has("ArrowRight")) {
+			this.room.send(ActionType.RIGHT);
+		}
+	}
+
+	// SERVER RESPONSE
 
 	private update(state: GameState) {
 		this.removeOldEntities(state);
@@ -136,7 +160,7 @@ export class Game {
 		const player = this.entities.get(playerEntityId);
 		if (!player) return;
 		// Smoothly interpolate camera movement
-		this.world.x += (this.app.screen.width / 2 - player.spriteContainer.x - this.world.x) * 0.1;
-		this.world.y += (this.app.screen.height / 2 - player.spriteContainer.y - this.world.y) * 0.1;
+		this.world.pivot.x += (player.spriteContainer.x - this.world.pivot.x) * 0.1;
+		this.world.pivot.y += (player.spriteContainer.y - this.world.pivot.y) * 0.1;
 	}
 }

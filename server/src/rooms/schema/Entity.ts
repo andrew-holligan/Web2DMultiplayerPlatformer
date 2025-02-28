@@ -10,4 +10,5 @@ export class Entity extends Schema {
 	@type(Vector) vel: Vector;
 	@type("number") width: number;
 	@type("number") height: number;
+	@type("float32") angle: number;
 }

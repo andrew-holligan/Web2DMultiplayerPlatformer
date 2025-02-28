@@ -4,14 +4,15 @@ import { EntityType } from "../../../../server/src/rooms/schema/enums/EntityType
 import { Entity as ServerEntity } from "../../../../server/src/rooms/schema/Entity";
 
 export abstract class Entity {
-	public readonly spriteContainer: PIXI.Container;
-	public readonly id: string;
+	readonly spriteContainer: PIXI.Container;
+	readonly id: string;
 
-	private readonly type: EntityType;
-	private readonly pos: { x: number; y: number };
-	private readonly vel: { x: number; y: number };
-	private readonly width: number;
-	private readonly height: number;
+	protected type: EntityType;
+	protected pos: { x: number; y: number };
+	protected vel: { x: number; y: number };
+	protected width: number;
+	protected height: number;
+	protected angle: number;
 
 	constructor(entity: ServerEntity) {
 		this.spriteContainer = new PIXI.Container();
@@ -21,22 +22,22 @@ export abstract class Entity {
 		this.vel = entity.vel;
 		this.width = entity.width;
 		this.height = entity.height;
+		this.angle = entity.angle;
 		this.initEntity();
 	}
 
 	// INITIALIZATION
 
 	private initEntity() {
+		this.spriteContainer.pivot.set(this.width / 2, this.height / 2);
 		this.spriteContainer.position.set(this.pos.x, this.pos.y);
-		this.spriteContainer.width = this.width;
-		this.spriteContainer.height = this.height;
+		this.spriteContainer.rotation = this.angle;
 	}
 
 	// UPDATE
 
 	updateEntity(entity: ServerEntity) {
 		this.spriteContainer.position.set(entity.pos.x, entity.pos.y);
-		this.spriteContainer.width = entity.width;
-		this.spriteContainer.height = entity.height;
+		this.spriteContainer.rotation = entity.angle;
 	}
 }

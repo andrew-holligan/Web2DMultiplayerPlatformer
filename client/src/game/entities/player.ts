@@ -22,7 +22,8 @@ export class Player extends Entity {
 	// INITIALIZATION
 
 	private initPlayer() {
-		this.spritePlayer.anchor.set(0.5);
+		this.spritePlayer.width = this.width;
+		this.spritePlayer.height = this.height;
 		this.spriteContainer.addChild(this.spritePlayer);
 	}
 

@@ -1,19 +1,19 @@
 import Matter from "matter-js";
 import { MapSchema } from "@colyseus/schema";
 
-import { GameMap } from "../../../shared/map/GameMap";
+import { MapType } from "../../../shared/types/map";
+import { MapEntityType } from "../rooms/schema/enums/MapEntityType";
 import { Entity } from "../rooms/schema/Entity";
-
-const CATEGORY_PLATFORM = 0x0001;
-const CATEGORY_PLAYER = 0x0002;
 
 export class GameEngine {
 	private readonly engine: Matter.Engine;
 	private readonly entities: Map<string, Matter.Body>;
 	private readonly spawns: { x: number; y: number }[] = [];
 
-	constructor(map: GameMap) {
-		this.engine = Matter.Engine.create();
+	constructor(map: MapType) {
+		this.engine = Matter.Engine.create({
+			gravity: { x: 0, y: 0.1 },
+		});
 		this.entities = new Map<string, Matter.Body>();
 		this.initMap(map);
 		this.initCollisions();
@@ -21,20 +21,20 @@ export class GameEngine {
 
 	// INITIALIZATION
 
-	private initMap(map: GameMap): void {
-		map.tiles.forEach((tile) => {
-			if (tile.isSpawn()) {
-				this.spawns.push({ x: tile.x, y: tile.y });
+	private initMap(map: MapType): void {
+		map.entities.forEach((entity) => {
+			if (entity.type === MapEntityType.SPAWN) {
+				this.spawns.push({ x: entity.x, y: entity.y });
 			}
-			if (!tile.isCollidable()) return;
-			const entity = Matter.Bodies.rectangle(
-				tile.x * map.tileWidth,
-				tile.y * map.tileHeight,
-				map.tileWidth,
-				map.tileHeight,
-				{ isStatic: true, collisionFilter: { category: CATEGORY_PLATFORM, mask: CATEGORY_PLAYER } }
-			);
-			Matter.World.add(this.engine.world, entity);
+
+			this.addEntity({
+				x: entity.x,
+				y: entity.y,
+				width: entity.width,
+				height: entity.height,
+				physicsOptions: map.physicsOptions[entity.type],
+				angle: entity.angle,
+			});
 		});
 	}
 
@@ -43,38 +43,43 @@ export class GameEngine {
 	// ADD ENTITIES
 
 	private addEntity({
-		pos,
-		vel,
+		x,
+		y,
 		width,
 		height,
+		physicsOptions,
+		angle,
 	}: {
-		pos: { x: number; y: number };
-		vel: { x: number; y: number };
+		x: number;
+		y: number;
 		width: number;
 		height: number;
+		physicsOptions: Matter.IBodyDefinition;
+		angle: number;
 	}): Matter.Body {
-		const entity = Matter.Bodies.rectangle(pos.x, pos.y, width, height, {
-			restitution: 0.0,
-			collisionFilter: { category: CATEGORY_PLAYER, mask: CATEGORY_PLATFORM },
-		});
-		Matter.Body.setVelocity(entity, vel);
-		Matter.World.add(this.engine.world, entity);
-		this.entities.set(entity.id.toString(), entity);
-		return entity;
+		const matterEntity = Matter.Bodies.rectangle(x, y, width, height, physicsOptions);
+		Matter.Body.setAngle(matterEntity, angle);
+		Matter.World.add(this.engine.world, matterEntity);
+		this.entities.set(matterEntity.id.toString(), matterEntity);
+		return matterEntity;
 	}
 
-	addPlayer({
-		pos,
-		vel,
-		width,
-		height,
-	}: {
-		pos: { x: number; y: number };
-		vel: { x: number; y: number };
-		width: number;
-		height: number;
-	}): string {
-		const entity = this.addEntity({ pos, vel, width, height });
+	addPlayer({ x, y, width, height }: { x: number; y: number; width: number; height: number }): string {
+		const entity = this.addEntity({
+			x: x,
+			y: y,
+			width: width,
+			height: height,
+			physicsOptions: {
+				isStatic: false,
+				frictionAir: 0.01,
+				collisionFilter: {
+					group: -1,
+				},
+				isSensor: false,
+			},
+			angle: 0,
+		});
 		return entity.id.toString();
 	}
 
@@ -90,7 +95,7 @@ export class GameEngine {
 	// UPDATE
 
 	update(delta: number, colyseusEntities: MapSchema<Entity, string>): void {
-		Matter.Engine.update(this.engine, delta);
+		Matter.Engine.update(this.engine);
 		this.updateColyseusEntities(colyseusEntities);
 	}
 
@@ -102,6 +107,7 @@ export class GameEngine {
 			entity.pos.y = matterEntity.position.y;
 			entity.vel.x = matterEntity.velocity.x;
 			entity.vel.y = matterEntity.velocity.y;
+			entity.angle = matterEntity.angle;
 		});
 	}
 
@@ -110,19 +116,19 @@ export class GameEngine {
 	handleJump(id: string, playerSpeed: number): void {
 		const entity = this.entities.get(id);
 		if (!entity) return;
-		Matter.Body.setVelocity(entity, { x: entity.velocity.x, y: -playerSpeed });
+		Matter.Body.setVelocity(entity, { x: entity.velocity.x, y: -(2 * playerSpeed) });
 	}
 
 	handleLeft(id: string, playerSpeed: number): void {
 		const entity = this.entities.get(id);
 		if (!entity) return;
-		Matter.Body.setVelocity(entity, { x: -playerSpeed, y: entity.velocity.y });
+		Matter.Body.setVelocity(entity, { x: -(1 * playerSpeed), y: entity.velocity.y });
 	}
 
 	handleRight(id: string, playerSpeed: number): void {
 		const entity = this.entities.get(id);
 		if (!entity) return;
-		Matter.Body.setVelocity(entity, { x: playerSpeed, y: entity.velocity.y });
+		Matter.Body.setVelocity(entity, { x: 1 * playerSpeed, y: entity.velocity.y });
 	}
 
 	// CLEANUP

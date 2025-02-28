@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import { TileType } from "../../../server/src/rooms/schema/enums/TileType";
+import { MapEntityType } from "../../../server/src/rooms/schema/enums/MapEntityType";
 import { PlayerSkinType } from "../../../server/src/rooms/schema/enums/PlayerSkinType";
 
 export abstract class Textures {
@@ -9,9 +9,9 @@ export abstract class Textures {
 	static async initTextures() {
 		const promises: Promise<any>[] = [];
 
-		const tileTypes = Object.values(TileType).filter((t) => typeof t !== "string");
+		const tileTypes = Object.values(MapEntityType).filter((t) => typeof t !== "string");
 		for (const type of tileTypes) {
-			const key = TileType[type];
+			const key = MapEntityType[type];
 			promises.push(
 				PIXI.Assets.load(`/images/tiles/${key}.svg`).then((texture) => {
 					this.textures.set(key, texture);
